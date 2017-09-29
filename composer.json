@@ -1,0 +1,6 @@
+{
+    "require": {
+        "guzzlehttp/guzzle": "~6.0",
+        "openlss/lib-array2xml": "^0.5.1"
+    }
+}
