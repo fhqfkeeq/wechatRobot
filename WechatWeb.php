@@ -8,5 +8,8 @@
  */
 class WechatWeb
 {
+    function __construct()
+    {
 
+    }
 }
