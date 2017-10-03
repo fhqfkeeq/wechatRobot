@@ -2,7 +2,9 @@
 
 namespace WechatRobot;
 
+use LSS\XML2Array;
 use PHPQRCode\QRcode;
+
 /**
  * Created by PhpStorm.
  * User: zhaojipeng
@@ -36,12 +38,12 @@ class Login
 
         $data = parsing_point($response);
 
-        if ($data['code'] != 200) {
+        if ($data['QRLogin.code'] != 200) {
             return false;
         }
 
         //调用请求
-        $this->uuid = $data['uuid'];
+        $this->uuid = $data['QRLogin.uuid'];
 
         return $this->uuid;
     }
@@ -58,18 +60,44 @@ class Login
 
     public function getQrCodeByCli()
     {
-        $qrcode_val = $this->url.'l/'.$this->uuid;
+        $qrcode_val = $this->url . 'l/' . $this->uuid;
         return QRcode::text($qrcode_val);
     }
 
     public function listenScan()
     {
-        $this->listenEvnet();
+        $data = $this->listenEvnet();
+
+        if ($data['code'] != 201) {
+            return false;
+        } else {
+            return true;
+        }
     }
 
     public function listenClick()
     {
-        $this->listenEvnet();
+        $data = $this->listenEvnet();
+
+        if ($data['code'] != 200) {
+            return false;
+        } else {
+            return $data['redirect_uri'];
+        }
+    }
+
+    public function getLoginInfo($url)
+    {
+        $url .= '&fun=new&version=v2';
+        $data = http_get($url);
+        echo $data . PHP_EOL;
+        $info = XML2Array::createArray($data);
+
+        if($info['error']['ret'] == 0){
+            return $info['error']['pass_ticket'];
+        }else{
+            return false;
+        }
     }
 
     private function listenEvnet()
@@ -84,5 +112,17 @@ class Login
             'r' => '-1160587432',
             '_' => '1452859503803',
         ];
+
+        $url = $this->url . $operation;
+
+        $response = http_listen($url, $params);
+
+        if ($response === false) {
+            return false;
+        }
+
+        $data = parsing_point($response);
+
+        return $data;
     }
 }

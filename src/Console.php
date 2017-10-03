@@ -38,13 +38,32 @@ class Console extends Command
         $qrcode = $login->getQrCodeByCli();
         $qrcode = $this->createCliQrCode($qrcode);
 
-        foreach ($qrcode as $item){
+        foreach ($qrcode as $item) {
             $output->writeln($item);
         }
 
         $io->newLine();
 
-//        $io->text('* 扫码成功，请在手机点击登录');
+        $scan = $login->listenScan();
+        if ($scan === false) {
+            $io->error('扫码失败，请重试');
+            exit;
+        }
+
+        $io->text('* 扫码成功，请在手机点击登录');
+        $redirect_uri = $login->listenClick();
+
+        if($redirect_uri === false){
+            $io->error('登录失败，请重试');
+            exit;
+        }
+
+        $io->text('* 登录成功，开始获取用户信息');
+
+        $pass_ticket = $login->getLoginInfo($redirect_uri);
+
+        $user = new User();
+        $user->init();
 
     }
 
@@ -69,8 +88,20 @@ class Console extends Command
     private function createCliQrCode($qrcode)
     {
         $data = [];
+        $len = strlen($qrcode[0]);
+
+        $padding = str_repeat('<white>  </white>', $len * 2);
+
+        for ($i = 0; $i < 5; $i++){
+            $data[] = $padding;
+        }
+
         foreach ($qrcode as $item) {
-            $data[] = str_replace([0,1], ['<black>  </black>', '<white>  </white>'], $item);
+            $data[] = str_replace([1, 0], ['<black>  </black>', '<white>  </white>'], $item);
+        }
+
+        for ($i = 0; $i < 5; $i++){
+            $data[] = $padding;
         }
 
         return $data;
