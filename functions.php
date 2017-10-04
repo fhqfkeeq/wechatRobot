@@ -6,49 +6,12 @@
  * Time: 14:23
  */
 
-/**
- * @param $url
- * @param $params
- * @return bool|\Psr\Http\Message\StreamInterface
- */
-function http_get($url, $params = [])
-{
-    $client = new \GuzzleHttp\Client(['cookies' => true]);
-
-    if (empty($params) === false) {
-        $response = $client->request('GET', $url, ['query' => $params]);
-    } else {
-        $response = $client->request('GET', $url);
-    }
-
-    if ($response->getStatusCode() == 200) {
-        return $response->getBody()->getContents();
-    } else {
-        return false;
-    }
-}
-
-function http_post($url, $params = [])
-{
-    $client = new \GuzzleHttp\Client();
-
-    $response = $client->request('POST', $url, ['json' => $params]);
-
-    if ($response->getStatusCode() == 200) {
-        return $response->getBody()->getContents();
-    } else {
-        return false;
-    }
-}
-
 function http_listen($url, $params)
 {
-    $response = http_get($url, $params);
+    $response = \WechatRobot\Http::http_get($url, $params);
     if ($response !== false) {
-        echo $response . PHP_EOL;
         $data = parsing_point($response);
-        print_r($data);
-        echo PHP_EOL;
+        wlog(4, 'debug', json_encode($data));
         if ($data['code'] == 408) {
             http_listen($url, $params);
         } elseif ($data['code'] == 201 || $data['code'] == 200) {
@@ -70,4 +33,28 @@ function parsing_point($data)
     }
 
     return $match_data;
+}
+
+/**
+ * 记录日志公用方法
+ * @param $level
+ * @param $log_type
+ * @param string $logData
+ * @return int
+ */
+function wlog($level = 4, $log_type, $logData = '')
+{
+    $log_level = [
+        '1' => 'ERROR',
+        '2' => 'WARNING',
+        '3' => 'INFO',
+        '4' => 'DEBUG',
+    ];
+    $log_path = './debug/' . $log_type . '_' . date('Ym') . '/'; //日志文件
+
+    if (!is_dir($log_path)) {
+        mkdir($log_path, 0755, true);
+    }
+    $log_file = $log_path . date('d') . '.log';
+    return file_put_contents($log_file, $log_type . '|' . $log_level[$level] . '|' . date('Y-m-d H:i:s') . '|' . $logData . PHP_EOL, FILE_APPEND);
 }

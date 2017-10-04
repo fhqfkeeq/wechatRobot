@@ -30,7 +30,7 @@ class Login
 
         $url = $this->url . $operation;
 
-        $response = http_get($url, $params);
+        $response = Http::http_get($url, $params);
 
         if ($response === false) {
             return false;
@@ -89,12 +89,13 @@ class Login
     public function getLoginInfo($url)
     {
         $url .= '&fun=new&version=v2';
-        $data = http_get($url);
-        echo $data . PHP_EOL;
+        $data = Http::http_get($url);
+
+        wlog(4, 'debug', $data);
         $info = XML2Array::createArray($data);
 
         if($info['error']['ret'] == 0){
-            return $info['error']['pass_ticket'];
+            return $info['error'];
         }else{
             return false;
         }

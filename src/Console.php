@@ -53,17 +53,34 @@ class Console extends Command
         $io->text('* 扫码成功，请在手机点击登录');
         $redirect_uri = $login->listenClick();
 
-        if($redirect_uri === false){
+        if ($redirect_uri === false) {
             $io->error('登录失败，请重试');
             exit;
         }
 
         $io->text('* 登录成功，开始获取用户信息');
 
-        $pass_ticket = $login->getLoginInfo($redirect_uri);
+        $data = $login->getLoginInfo($redirect_uri);
 
-        $user = new User();
+        $BaseRequest = [
+            'Uin' => $data['wxuin'],
+            'Sid' => $data['wxsid'],
+            'Skey' => $data['skey'],
+            'DeviceID' => 'e' . substr(md5(uniqid()), 2, 15)
+        ];
+
+        $user = new User($BaseRequest, $data['pass_ticket']);
         $user->init();
+
+        switch ($this->menu($io)) {
+            case '1':
+                $info = $user->getContact();
+                echo '获取成功';
+                break;
+            default:
+                echo 'aaa';
+                break;
+        }
 
     }
 
@@ -78,11 +95,11 @@ class Console extends Command
     private function menu($io)
     {
         $io->listing([
-            '1. 登录',
+            '1. 获取联系人列表',
             '2. 注册',
             '3. 退出'
         ]);
-        $io->ask('请选择', 1);
+        return $io->ask('请选择', 1);
     }
 
     private function createCliQrCode($qrcode)
@@ -92,7 +109,7 @@ class Console extends Command
 
         $padding = str_repeat('<white>  </white>', $len * 2);
 
-        for ($i = 0; $i < 5; $i++){
+        for ($i = 0; $i < 5; $i++) {
             $data[] = $padding;
         }
 
@@ -100,7 +117,7 @@ class Console extends Command
             $data[] = str_replace([1, 0], ['<black>  </black>', '<white>  </white>'], $item);
         }
 
-        for ($i = 0; $i < 5; $i++){
+        for ($i = 0; $i < 5; $i++) {
             $data[] = $padding;
         }
 

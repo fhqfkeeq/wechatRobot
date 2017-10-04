@@ -11,6 +11,8 @@
 require ('./vendor/autoload.php');
 require ('./functions.php');
 
+date_default_timezone_set('Asia/Shanghai');
+
 $app = new \Symfony\Component\Console\Application();
 $app->add(new \WechatRobot\Console());
 $app->run();

@@ -2,9 +2,6 @@
 
 namespace WechatRobot;
 
-use LSS\XML2Array;
-use PHPQRCode\QRcode;
-
 /**
  * Created by PhpStorm.
  * User: zhaojipeng
@@ -14,10 +11,12 @@ use PHPQRCode\QRcode;
 class User
 {
     private $url = 'https://wx.qq.com/';
+    private $BaseRequest = [];
     private $pass_ticket = '';
 
-    public function __construct($pass_ticket = '')
+    public function __construct($BaseRequest, $pass_ticket)
     {
+        $this->BaseRequest = $BaseRequest;
         $this->pass_ticket = $pass_ticket;
     }
 
@@ -26,27 +25,61 @@ class User
         $operation = 'cgi-bin/mmwebwx-bin/webwxinit';
 
         $params = [
-            'r' => '604658324',
+            'r' => time(),
             'pass_ticket' => $this->pass_ticket
         ];
 
-        $url = $this->url . $operation;
+        $query = http_build_query($params);
 
-        $response = http_post($url, $params);
+        $params = [
+            'BaseRequest' => $this->BaseRequest
+        ];
+
+        $url = $this->url . $operation . '?' . $query;
+
+        $response = Http::http_post($url, $params);
 
         if ($response === false) {
             return false;
         }
 
-        $data = parsing_point($response);
+        wlog(4, 'debug', $response);
 
-        if ($data['QRLogin.code'] != 200) {
+        $data = json_decode($response, true);
+
+        if ($data !== false && $data['BaseResponse']['Ret'] != 0) {
             return false;
         }
 
-        //调用请求
-        $this->uuid = $data['QRLogin.uuid'];
+        return $data;
+    }
 
-        return $this->uuid;
+    public function getContact()
+    {
+        $operation = 'cgi-bin/mmwebwx-bin/webwxgetcontact';
+        $params = [
+            'pass_ticket' => $this->pass_ticket,
+            'r' => time(),
+            'seq' => 0,
+            'skey' => $this->BaseRequest['Skey'],
+        ];
+
+        $url = $this->url . $operation;
+
+        $response = Http::http_get($url, $params);
+
+        if ($response === false) {
+            return false;
+        }
+
+        wlog(4, 'debug', $response);
+
+        $data = json_decode($response, true);
+
+        if ($data !== false && $data['BaseResponse']['Ret'] != 0) {
+            return false;
+        }
+
+        return $data;
     }
 }
