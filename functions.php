@@ -6,24 +6,30 @@
  * Time: 14:23
  */
 
-function http_listen($url, $params)
+function http_listen($url, $params, $callback)
 {
+    //如果断续则return false,否则将原样返回
     $response = \WechatRobot\Http::http_get($url, $params);
     if ($response !== false) {
-        $data = parsing_point($response);
-        wlog(4, 'debug', json_encode($data));
-        if ($data['code'] == 408) {
-            http_listen($url, $params);
-        } elseif ($data['code'] == 201 || $data['code'] == 200) {
-            return $response;
+        if ($callback instanceof Closure) {
+            $re = $callback($response);
+            if ( $re !== false) {
+                return $re;
+            } else {
+                http_listen($url, $params, $callback);
+            }
         }
     }
 }
 
-function parsing_point($data)
+function parsing_point($data, $regx = '')
 {
     $match_data = [];
-    $regx = '/window.([\w.]*)[\s]?=[\s]?[\"\']?([a-zA-z0-9=:\/\.\-\?@\&]*)?[\"\']?;*/';
+
+    if(empty($regx) === true){
+        $regx = '/window.([\w.]*)[\s]?=[\s]?[\"\']?([a-zA-z0-9=:\/\.\-\?@\&\{\}]*)?[\"\']?;*/';
+    }
+
     $re = preg_match_all($regx, trim($data), $value, PREG_SET_ORDER);
 
     if ($re > 0) {

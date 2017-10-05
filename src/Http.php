@@ -1,9 +1,12 @@
 <?php
 
 namespace WechatRobot;
+
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
+use GuzzleHttp\Cookie\SetCookie;
 use GuzzleHttp\Middleware;
+use GuzzleHttp\RequestOptions;
 
 /**
  * Created by PhpStorm.
@@ -20,10 +23,9 @@ class Http
 
     public static function get_client()
     {
-        if(is_null(self::$obj) === true){
+        if (is_null(self::$obj) === true) {
             self::$obj = new Client(['cookies' => true]);
             self::$jar = new CookieJar();
-            self::$jar->clear();
         }
 
         return self::$obj;
@@ -59,7 +61,10 @@ class Http
         }
 
         if ($response->getStatusCode() == 200) {
-            return $response->getBody()->getContents();
+            $contents = $response->getBody()->getContents();
+            wlog(4, 'debug', 'url:' . $url . '|response:' . $contents);
+
+            return $contents;
         } else {
             return false;
         }
@@ -69,19 +74,35 @@ class Http
     {
         $obj = self::get_client();
 
+        wlog(4, 'debug', 'url:' . $url . '|request:' . json_encode($params, JSON_UNESCAPED_UNICODE));
+
         $response = $obj->request('POST', $url, [
-            'json' => $params,
+            'body' => json_encode($params, JSON_UNESCAPED_UNICODE),
             'cookies' => self::$jar,
             'headers' => [
-                'User-Agent' => self::$user_agent
+                'User-Agent' => self::$user_agent,
+                'Content-Type' => 'application/json',
             ],
             'debug' => self::$debug
         ]);
 
         if ($response->getStatusCode() == 200) {
+            wlog(4, 'debug', 'url:' . $url . '|response:' . $response->getBody()->getContents());
             return $response->getBody()->getContents();
         } else {
             return false;
+        }
+    }
+
+    //解决webpush.weixin.qq.com域名无法获取到cookie的问题
+    public static function setCookieFormAllDomain()
+    {
+        $cookie = self::$jar->toArray();
+
+        foreach ($cookie as $item) {
+            $item['Domain'] = 'webpush.weixin.qq.com';
+            $setCookie = new SetCookie($item);
+            self::$jar->setCookie($setCookie);
         }
     }
 }

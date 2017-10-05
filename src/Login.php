@@ -23,7 +23,7 @@ class Login
             'redirect_uri' => 'https://wx.qq.com/cgi-bin/mmwebwx-bin/webwxnewloginpage',
             'fun' => 'new',
             'lang' => 'en_US',
-            '_' => '1452859503801'
+            '_' => time().'339'
         ];
 
         $operation = 'jslogin';
@@ -91,12 +91,11 @@ class Login
         $url .= '&fun=new&version=v2';
         $data = Http::http_get($url);
 
-        wlog(4, 'debug', $data);
         $info = XML2Array::createArray($data);
 
-        if($info['error']['ret'] == 0){
+        if ($info['error']['ret'] == 0) {
             return $info['error'];
-        }else{
+        } else {
             return false;
         }
     }
@@ -116,7 +115,15 @@ class Login
 
         $url = $this->url . $operation;
 
-        $response = http_listen($url, $params);
+        $response = http_listen($url, $params, function ($response) {
+            $data = parsing_point($response);
+
+            if ($data['code'] == 408) {
+                return false;
+            } elseif ($data['code'] == 201 || $data['code'] == 200) {
+                return $response;
+            }
+        });
 
         if ($response === false) {
             return false;
