@@ -87,8 +87,10 @@ class Http
         ]);
 
         if ($response->getStatusCode() == 200) {
-            wlog(4, 'debug', 'url:' . $url . '|response:' . $response->getBody()->getContents());
-            return $response->getBody()->getContents();
+            $contents = $response->getBody()->getContents();
+            wlog(4, 'debug', 'url:' . $url . '|response:' . $contents);
+
+            return $contents;
         } else {
             return false;
         }

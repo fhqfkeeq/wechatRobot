@@ -77,9 +77,15 @@ class Message
 
         $data = json_decode($data, true);
 
-        if ($data['BaseResponse']['Ret'] == 0) {
-            $this->syncKey = $data['SyncKey'];
+        if ($data['BaseResponse']['Ret'] != 0) {
+            return false;
         }
+
+        $this->syncKey = $data['SyncKey'];
+        return [
+            'count' => $data['AddMsgCount'],
+            'list' => $data['AddMsgList'],
+        ];
     }
 
     public function sendMessage($from, $to)
@@ -88,13 +94,40 @@ class Message
 
         $query = '?pass_ticket=' . $this->pass_ticket;
 
-        $clientMsgId = $localID = microtime(true)*10000 . rand(111,999);
+        $clientMsgId = $localID = microtime(true) * 10000 . rand(111, 999);
 
         $params = [
             'BaseRequest' => $this->BaseRequest,
             'Msg' => [
                 'Type' => 1,
                 'Content' => '啦啦啦～',
+                'FromUserName' => $from,
+                'ToUserName' => $to,
+                'LocalID' => $localID,
+                'ClientMsgId' => $clientMsgId,
+            ],
+        ];
+
+        $url = $this->url . $operation . $query;
+
+        $response = Http::http_post($url, $params);
+    }
+
+    public function sendEmojiMessage($from, $to)
+    {
+        $operation = 'cgi-bin/mmwebwx-bin/webwxsendemoticon';
+
+        $query = '?fun=new&f=json&pass_ticket=' . $this->pass_ticket;
+
+        $clientMsgId = $localID = microtime(true) * 10000 . rand(111, 999);
+
+        $params = [
+            'BaseRequest' => $this->BaseRequest,
+            'Msg' => [
+                'Type' => 47,
+                'EmojiFlag' => 2,
+                'MediaId' => '7396891160509239594',
+                'Content' => '',
                 'FromUserName' => $from,
                 'ToUserName' => $to,
                 'LocalID' => $localID,
@@ -114,5 +147,34 @@ class Message
         }
 
         return implode('|', $tmp);
+    }
+
+    private function uploadFile($filename)
+    {
+        $url = 'https://file.wx.qq.com/cgi-bin/mmwebwx-bin/webwxuploadmedia?f=json';
+
+        $params = [
+            'id' => $filename.time(),
+            'name' => $filename,
+            'type' => 'image/jpeg',
+            'lastModifieDate' => '',
+            'size' => filesize($filename),
+            'mediatype' => 'doc|pic',
+            'uploadmediarequest' => json_encode([
+                'UploadType' => 2,
+                'BaseRequest' => $this->BaseRequest,
+                'ClientMediaId' => microtime(true) * 10000 . rand(111, 999),
+                'TotalLen' => filesize($filename),
+                'StartPos' => 0,
+                'DataLen' => filesize($filename),
+                'MediaType' => 4,
+                'FromUserName' => '',
+                'ToUserName' => '',
+                'FileMd5' => md5_file($filename),
+            ]),
+            'webwx_data_ticket' => '',
+            'pass_ticket' => $this->pass_ticket,
+            'filename' => '',
+        ];
     }
 }

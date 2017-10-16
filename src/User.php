@@ -46,7 +46,7 @@ class User
 
         $data = json_decode($response, true);
 
-        if ($data !== false && $data['BaseResponse']['Ret'] != 0) {
+        if ($data === false || $data['BaseResponse']['Ret'] != 0) {
             return false;
         }
 
@@ -131,5 +131,15 @@ class User
         }
 
         return $returnData;
+    }
+
+    public function searchByUserName($username)
+    {
+        foreach ($this->contactList as $item){
+            if($item['UserName'] == $username){
+                return $item;
+            }
+        }
+        return false;
     }
 }
